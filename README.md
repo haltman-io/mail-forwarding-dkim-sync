@@ -1,5 +1,44 @@
 # mail-forwarding-dkim-sync
-Required to remove Proton's outgoing SMTP server. We do not condone your handing over data to the FBI.
+This project exists to solve a real problem in **multi-domain email environments**: keeping **DKIM aligned with the visible sender domain** without manually editing OpenDKIM every time a new domain is added.
+
+In a small setup, maintaining `KeyTable` and `SigningTable` by hand is manageable. In an environment with dozens, hundreds, or thousands of domains, that quickly becomes an operational failure point. A domain may exist in the database, but not in OpenDKIM. The result is predictable:
+
+* the message is sent with `From: user@customer-domain.com`
+* but OpenDKIM signs it with a fixed domain such as `d=dkim.example.com`
+* **DKIM may still pass cryptographically**
+* but **DMARC fails because the signature is not aligned with the visible sender**
+* the recipient sees spoofing, phishing, or authentication warnings
+
+So the problem is not just “having DKIM.”
+The real problem is having **correct DKIM that is aligned with the domain shown in the `From:` header**.
+
+This project exists to automate that.
+
+It reads domains from MariaDB and automatically generates:
+
+* `KeyTable`
+* `SigningTable`
+
+That allows each domain to be signed with its own DKIM identity, for example:
+
+* `From: root@reads.phrack.org`
+* `DKIM d=reads.phrack.org`
+
+instead of forcing every message through a generic shared signing domain.
+
+This improves:
+
+* **DKIM correctness**
+* **DMARC alignment**
+* **deliverability**
+* **operational scalability**
+* **consistency across large domain inventories**
+
+In plain terms:
+
+**new domains added to the database should not require manual OpenDKIM maintenance.**
+This project exists so DKIM stays synchronized with the domain inventory automatically, reducing configuration drift, authentication failures, and anti-spoofing warnings at recipient providers.
+
 
 ## Context
 Mail forwarding used (in the past) Proton's SMTP servers only to send confirmation emails because we trusted them.
